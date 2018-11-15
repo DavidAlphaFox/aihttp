@@ -6,6 +6,7 @@
 -export([content_encoding/1]).
 -export([encode_body/2,decode_body/2]).
 
+-export([add_if_none_match/2,add_if_modified_since/2]).
 
 headers(H) when erlang:is_map(H) -> maps:to_list();
 headers(H) -> H.
@@ -47,9 +48,20 @@ range(Headers)->
             cow_http_hd:parse_range(Range)
     end.
 content_encoding(Headers)-> proplists:get_value(?CONTENT_ENCODING,Headers).
+
 -spec decode_body(atom(),binary())-> binary() | {ok,binary()}.
 decode_body(<<"gzip">>,Body)->{ok,zlib:gunzip(Body)};
 decode_body(_,Body) -> Body.
 -spec encode_body(atom(),binary())-> binary() | {ok,binary()}.
 encode_body(gzip,Body) -> {ok,zlib:gzip(Body)};
 encode_body(_,Body) -> Body.
+
+add_if_none_match(undefined,Headers)-> Headers;
+add_if_none_match(Etag,Headers)->
+    Filterd = lists:filter(fun({Key,_V})-> Key /= ?IF_NONE_MATCH end,Headers),
+    [{?IF_NONE_MATCH,Etag}] ++ Filterd.
+
+add_if_modified_since(undefined,Headers) -> Headers;
+add_if_modified_since(Modified,Headers)->
+    Filterd = lists:filter(fun({Key,_V}) -> Key /= ?IF_MODIFIED_SINCE end,Headers),
+    [{?IF_MODIFIED_SINCE,Modified}] ++ Filterd.

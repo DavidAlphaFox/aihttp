@@ -19,6 +19,9 @@
 -define(DATE,<<"date">>).
 -define(CONTENT_ENCODING,<<"content-encoding">>).
 
+-define(IF_NONE_MATCH,<<"if-none-match">>).
+-define(IF_MODIFIED_SINCE,<<"if-modified-since">>).
+
 -define(NO_STORE,<<"no-store">>).
 -define(NO_CACHE,<<"no-cache">>).
 -define(BYTES,<<"bytes">>).
