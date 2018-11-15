@@ -17,6 +17,7 @@
 -define(ETAG,<<"etag">>).
 -define(LAST_MODIFIED,<<"last-modified">>).
 -define(DATE,<<"date">>).
+-define(CONTENT_ENCODING,<<"content-encoding">>).
 
 -define(NO_STORE,<<"no-store">>).
 -define(NO_CACHE,<<"no-cache">>).

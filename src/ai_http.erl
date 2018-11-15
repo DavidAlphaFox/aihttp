@@ -3,6 +3,7 @@
 
 -export([content_length/1,etag/1,last_modified/1]).
 -export([accept_ranges/1,content_range/1,range/1]).
+-export([content_encoding/1]).
 -export([encode_body/2,decode_body/2]).
 
 
@@ -45,6 +46,7 @@ range(Headers)->
         Range ->
             cow_http_hd:parse_range(Range)
     end.
+content_encoding(Headers)-> proplists:get_value(?CONTENT_ENCODING,Headers).
 -spec decode_body(atom(),binary())-> binary() | {ok,binary()}.
 decode_body(<<"gzip">>,Body)->{ok,zlib:gunzip(Body)};
 decode_body(_,Body) -> Body.
