@@ -7,6 +7,7 @@
 -export([encode_body/2,decode_body/2]).
 
 -export([add_if_none_match/2,add_if_modified_since/2]).
+-export([add_content_encoding/2,add_content_length/2]).
 
 headers(H) when erlang:is_map(H) -> maps:to_list();
 headers(H) -> H.
@@ -65,3 +66,13 @@ add_if_modified_since(undefined,Headers) -> Headers;
 add_if_modified_since(Modified,Headers)->
     Filterd = lists:filter(fun({Key,_V}) -> Key /= ?IF_MODIFIED_SINCE end,Headers),
     [{?IF_MODIFIED_SINCE,Modified}] ++ Filterd.
+add_content_encoding(undefined,Headers) -> Headers;
+add_content_encoding(Encoding,Headers) when erlang:is_atom(Encoding)->
+    add_content_encoding(erlang:atom_to_binary(Encoding,utf8),Headers);
+add_content_encoding(Encoding,Headers)->
+    Filterd = lists:filter(fun({Key,_V}) -> Key /= ?CONTENT_ENCODING end,Headers),
+    [{?CONTENT_ENCODING,Encoding}] ++ Filterd.
+add_content_length(undefined,Headers) -> Headers;
+add_content_length(Length,Headers)->
+    Filterd = lists:filter(fun({Key,_V}) -> Key /= ?CONTENT_LENGTH end,Headers),
+    [{?CONTENT_LENGTH,erlang:integer_to_binary(Length)}] ++ Filterd.
