@@ -52,9 +52,11 @@ content_encoding(Headers)-> proplists:get_value(?CONTENT_ENCODING,Headers).
 
 -spec decode_body(atom(),binary())-> binary() | {ok,binary()}.
 decode_body(<<"gzip">>,Body)->{ok,zlib:gunzip(Body)};
+decode_body(<<"deflate">>,Body) -> {ok,zlib:unzip(Body)};
 decode_body(_,Body) -> Body.
 -spec encode_body(atom(),binary())-> binary() | {ok,binary()}.
 encode_body(gzip,Body) -> {ok,zlib:gzip(Body)};
+encode_body(deflate,Body) -> {ok,zlib:zip(Body)};
 encode_body(_,Body) -> Body.
 
 add_if_none_match(undefined,Headers)-> Headers;
