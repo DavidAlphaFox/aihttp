@@ -1,4 +1,3 @@
-src/ai_http.erl:: include/aihttp.hrl; @touch $@
-src/ai_http_cache.erl:: include/aihttp.hrl; @touch $@
+src/ai_url.erl:: include/ai_url.hrl; @touch $@
 
 COMPILE_FIRST +=
