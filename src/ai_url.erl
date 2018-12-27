@@ -183,7 +183,13 @@ build(qs,Record,Acc)->
                         (I,QAcc) when erlang:is_atom(QAcc)-> <<"?",I/binary>> ;
                         (I,QAcc) ->  <<QAcc/binary,"&",I/binary>>  
                     end, undefined,Q),
-            build(fragment,Record,<<Acc/binary,S/binary>>)
+            if
+                S == undefined ->
+                    build(fragment,Record,Acc);
+                true ->
+                    build(fragment,Record,<<Acc/binary,S/binary>>)
+            end
+            
     end;
 build(fragment,Record,Acc)->
     case Record#ai_url.fragment of 
