@@ -18,6 +18,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	terminate/2, code_change/3, format_status/2]).
 
+-export([run/2]).
+
 -define(SERVER, ?MODULE).
 -define(HTTP_TIMEOUT,3000).
 -record(state, {
@@ -35,7 +37,8 @@
 %%%===================================================================
 %%% API
 %%%===================================================================
-
+run(Pid,Task)->
+    gen_server:call(Pid,{run,Task}).
 %%--------------------------------------------------------------------
 %% @doc
 %% Starts the server
