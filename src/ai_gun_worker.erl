@@ -274,22 +274,22 @@ connect(#state{host = Host,port = Port,opts = Opts, sender = Sender,monitors = M
 	end.
 request(_,{stop,State})-> {stop,State};
 request({Action,TaskKey,URL}, {ConnPid,State})->
-	Method = ai_string:to_string(Action),
+	Method = method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,[{<<"content-type">>,<<"application/json;charset=UTF-8">>}]),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
-request({Action,TaskKey,URL,{data,Data}}, {ConnPid,State})->
-	Method = ai_string:to_string(Action),
+request({Action,TaskKey,URL,{body,Data}}, {ConnPid,State})->
+	Method = method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,[{<<"content-type">>,<<"application/json;charset=UTF-8">>}],Data),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
 request({Action,TaskKey,URL,{headers,Headers}}, {ConnPid,State})->
-	Method = ai_string:to_string(Action),
+	Method = method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,Headers),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
-request({Action,TaskKey,URL,{headers,Headers},{data,Data}}, {ConnPid,State})->
-	Method = ai_string:to_string(Action),
+request({Action,TaskKey,URL,{headers,Headers},{body,Data}}, {ConnPid,State})->
+	Method = method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,Headers,Data),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State).
@@ -387,3 +387,10 @@ gun_down(ConnPid,#state{conn = Conn,receiver = From} = State)->
         true ->
             State
     end.
+method(get)-><<"GET">>;
+method(post)-><<"POST">>;
+method(patch)-><<"PATCH">>;
+method(options)-><<"OPTIONS">>;
+method(head)-><<"HEAD">>;
+method(delete)-><<"DELETE">>;
+method(put)-><<"PUT">>.
