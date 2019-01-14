@@ -71,7 +71,7 @@ parse(authority,<<"//",Bin/bits>>,Acc)->
                 {S1,_L1}->
                     Authority = binary:part(Bin,0,S1),
                     Rest = binary:part(Bin,S1,byte_size(Bin) - S1),
-                    parse(path,Rest,Acc#ai_url{authority = Authority,host = Bin})
+                    parse(path,Rest,Acc#ai_url{authority = Authority,host = Authority})
             end;
         {S,L}->
             case binary:match(Bin,[<<"/">>]) of 
@@ -85,7 +85,7 @@ parse(authority,<<"//",Bin/bits>>,Acc)->
                     Port = binary:part(Bin,Pos,S2 - Pos),
                     Host = binary:part(Bin,0,S),
                     Rest = binary:part(Bin,S2,byte_size(Bin) - S2),
-                    parse(path,Rest,Acc#ai_url{authority = Bin,host = Host,port = Port})
+                    parse(path,Rest,Acc#ai_url{authority = <<Host/binary,":",Port/binary>>,host = Host,port = Port})
                     
             end
     end;
