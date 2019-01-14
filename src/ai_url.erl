@@ -122,17 +122,26 @@ parse(qs,Bin,Acc)->
     case binary:match(Bin,[<<"#">>]) of 
         nomatch -> 
             QS = cow_qs:parse_qs(Bin),
-            Acc#ai_url{qs = QS};
+            QS0 = lists:map(fun({K,V})->
+                    {cow_uri:urldecode(K),cow_uri:urldecode(V)} 
+                end,QS),
+            Acc#ai_url{qs = QS0};
         {S,L} ->
             Query = binary:part(Bin,0,S),
             QS = cow_qs:parse_qs(Query),
+            QS0 = lists:map(fun({K,V})->
+                    {cow_uri:urldecode(K),cow_uri:urldecode(V)} 
+                end,QS),
             Pos = S + L,
             Rest = binary:part(Bin,Pos,byte_size(Bin) - Pos),
-            parse(fragment,Rest,Acc#ai_url{qs = QS})
+            parse(fragment,Rest,Acc#ai_url{qs = QS0})
 end;
 parse(fragment,Bin,Acc)->
     QS = cow_qs:parse_qs(Bin),
-    Acc#ai_url{fragment = QS}.
+    QS0 = lists:map(fun({K,V})->
+            {cow_uri:urldecode(K),cow_uri:urldecode(V)} 
+        end,QS),
+    Acc#ai_url{fragment = QS0}.
 
 
 build(Record)->
