@@ -1,7 +1,6 @@
 -module(ai_gun).
 -export([method/1,urlencode_pairs/1]).
 
-
 urlencode_pairs(Tokens) when is_map(Tokens) ->
     urlencode_pairs(maps:to_list(Tokens));
 urlencode_pairs(Tokens) ->
@@ -23,5 +22,4 @@ method(options) ->"OPTIONS";
 method(get) ->"GET";
 method(post) ->"POST";
 method(head) ->"HEAD".
-
 
