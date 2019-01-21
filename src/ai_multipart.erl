@@ -1,6 +1,6 @@
 
 -module(ai_multipart).
--export([encode/1,encode/2]).
+-export([boundary/0,encode/1,encode/2]).
 %% @doc encode a list of parts a multipart form.
 %% Parts can be under the form:
 %%  - `{file, Path}' : to send a file
@@ -82,21 +82,13 @@ encode(Parts, Boundary) ->
     MpEof = eof(Boundary),
     FinalSize = Size + byte_size(MpEof),
     {Boundary,<< Acc/binary, MpEof/binary >>, FinalSize}.
-
+-spec boundary() -> binary().
+boundary() ->
+    Unique = cow_base64url:encode(crypto:strong_rand_bytes(12), #{padding => false}),
+    <<"---------------------------", Unique/binary>>.
 -spec eof(Boundary:: binary()) -> binary().
 eof(Boundary) ->
     <<"--",  Boundary/binary, "--\r\n">>.
-
--spec boundary() -> binary().
-boundary() ->
-    Unique = unique(16),
-    <<"---------------------------", Unique/binary>>.
-
-unique(Size) -> unique(Size, <<>>).
-unique(0, Acc) -> Acc;
-unique(Size, Acc) ->
-  Random = $a + rand:uniform($z - $a),
-  unique(Size - 1, <<Acc/binary, Random>>).
 
 header(Headers, Boundary) ->
     BinHeaders = to_binary(Headers),
