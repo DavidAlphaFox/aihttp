@@ -142,7 +142,7 @@ file_header({file, Path, Name, ExtraHeaders}, Boundary) when is_binary(Name) ->
 file_header({file, Path, {Disposition, Params}, ExtraHeaders}, Boundary) ->
     CType = cow_mimetypes:all(Path),
     Len = filelib:file_size(Path),
-    ExtraHeaders0 = lists:map(fun ({K, V}) -> {ai_string:to_lower(K), V} end, ExtraHeaders),
+    ExtraHeaders0 = lists:map(fun ({K, V}) -> {string:lowercase(K), V} end, ExtraHeaders),
     Headers = filter_header([{<<"content-type">>, mimetype(CType)},
                                 {<<"content-length">>, Len}],
                                [{<<"content-disposition">>, Disposition, Params} | ExtraHeaders0]),
@@ -175,7 +175,7 @@ data_header({Name, Len, ExtraHeaders}, Boundary) ->
     data_header({Name, Len, Disposition, ExtraHeaders}, Boundary);
 data_header({Name, Len, {Disposition, Params}, ExtraHeaders}, Boundary) ->
     CType = cow_mimetypes:all(Name),
-    ExtraHeaders0 = lists:map(fun ({K, V}) -> {ai_string:to_lower(K), V} end, ExtraHeaders),
+    ExtraHeaders0 = lists:map(fun ({K, V}) -> {string:lowercase(K), V} end, ExtraHeaders),
     Headers = filter_header([{<<"content-type">>, mimetype(CType)},
                                 {<<"content-length">>, Len}],
                                [{<<"content-disposition">>, Disposition, Params} | ExtraHeaders0]),
