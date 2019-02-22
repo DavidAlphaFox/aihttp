@@ -9,7 +9,6 @@
 -module(ai_gun_worker).
 
 -behaviour(gen_server).
--behaviour(poolboy_worker).
 
 %% API
 -export([start_link/1]).
@@ -274,22 +273,22 @@ connect(#state{host = Host,port = Port,opts = Opts, sender = Sender,monitors = M
 	end.
 request(_,{stop,State})-> {stop,State};
 request({Action,TaskKey,URL}, {ConnPid,State})->
-	Method = method(Action),
+	Method = ai_gun:method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,[{<<"content-type">>,<<"application/json;charset=UTF-8">>}]),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
 request({Action,TaskKey,URL,{body,Data}}, {ConnPid,State})->
-	Method = method(Action),
+	Method = ai_gun:method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,[{<<"content-type">>,<<"application/json;charset=UTF-8">>}],Data),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
 request({Action,TaskKey,URL,{headers,Headers}}, {ConnPid,State})->
-	Method = method(Action),
+	Method = ai_gun:method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,Headers),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State);
 request({Action,TaskKey,URL,{headers,Headers},{body,Data}}, {ConnPid,State})->
-	Method = method(Action),
+	Method = ai_gun:method(Action),
 	StreamRef = gun:request(ConnPid,Method,URL,Headers,Data),
     Key = {ConnPid,StreamRef},
     gun_up(Key,TaskKey,State).
@@ -387,10 +386,3 @@ gun_down(ConnPid,#state{conn = Conn,receiver = From} = State)->
         true ->
             State
     end.
-method(get)-><<"GET">>;
-method(post)-><<"POST">>;
-method(patch)-><<"PATCH">>;
-method(options)-><<"OPTIONS">>;
-method(head)-><<"HEAD">>;
-method(delete)-><<"DELETE">>;
-method(put)-><<"PUT">>.

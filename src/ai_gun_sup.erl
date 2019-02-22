@@ -11,18 +11,13 @@ start_link(Args) ->
 
 start_workers({Name,Opts})->
     PoolSize = maps:get(pool_size,Opts,5),
+    MaxOverflow = maps:get(max_overflow,Opts,0),
     PoolBoyOpts =
         [{name,{local,Name}},{size,PoolSize},
-         {max_overflow,0},{worker_module,ai_gun_worker}
+         {max_overflow,MaxOverflow},{worker_module,ai_gun_worker}
         ],
-    PoolSepc = poolboy:child_spec(Name,PoolBoyOpts,Opts),
-    case erlang:whereis(?SERVER) of 
-        undefined ->
-            {ok,_Pid} = ai_postgres_sup:start_link(), 
-            supervisor:start_child(?SERVER,PoolSepc);
-        _ -> supervisor:start_child(?SERVER,PoolSepc)
-    end.
-
+    PoolSpec = ai_pool:pool_spec(Name,PoolBoyOpts,Opts),
+    supervisor:start_child(?SERVER,PoolSpec).
 
 init(Conf) ->
     SupFlags = #{strategy => one_for_one,
@@ -31,10 +26,12 @@ init(Conf) ->
     PoolSpecs =
         lists:map(fun({Name,Opts})->
                           PoolSize = maps:get(pool_size,Opts,5),
+                          MaxOverflow = maps:get(max_overflow,Opts,0),
                           PoolBoyOpts =
                               [{name,{local,Name}},{size,PoolSize},
-                               {max_overflow,0},{worker_module,ai_gun_worker}
+                               {max_overflow,MaxOverflow},
+                               {worker_module,ai_gun_worker}
                               ],
-                          poolboy:child_spec(Name,PoolBoyOpts,Opts)
+                          ai_pool:pool_spec(Name,PoolBoyOpts,Opts)
                   end,Conf),
     {ok, {SupFlags, PoolSpecs}}.
