@@ -60,9 +60,10 @@ init([]) ->
                  period => 5},
     GunSup = #{id => ai_gun_sup,
 							 start => {ai_temp_sup, start_link, 
-                         [[{name,{local,ai_gun_sup}},
-                           {strategy,one_for_one},
-                           {intensity,5},{period,5}]]},
+                         [#{name => {local,ai_gun_sup},
+                           strategy => one_for_one,
+                           intensity => 5, period => 5}
+                         ]},
 							 restart => transient,
 							 shutdown => 5000,
 							 type => supervisor,
