@@ -9,7 +9,6 @@
 -module(ai_gun_worker).
 
 -behaviour(gen_server).
--behaviour(poolboy_worker).
 
 %% API
 -export([start_link/1]).
@@ -376,6 +375,7 @@ done(#state{conn = [],tasks = Tasks,receiver = From} = State)->
     gen_server:reply(From,{done,Result}),
     State0;
 done(#state{conn = _Conn} = State) -> State.
+
 gun_down(_ConnPid,#state{receiver = undefined} = State)-> clean(State);
 gun_down(ConnPid,#state{conn = Conn,receiver = From} = State)->
     Found = lists:any(fun({Pid,_Ref})-> Pid == ConnPid end,Conn),
@@ -388,11 +388,8 @@ gun_down(ConnPid,#state{conn = Conn,receiver = From} = State)->
             State
     end.
 
-
-method(Method) when is_binary(Method) -> 
-    string:to_upper(binary_to_list(Method));
-method(Method) when is_list(Method) ->
-    string:to_upper(Method);
+method(Method) when is_binary(Method) -> string:to_upper(erlang:binary_to_list(Method));
+method(Method) when is_list(Method) -> string:to_upper(Method);
 method(put) ->"PUT";
 method(delete) ->"DELETE";
 method(patch) ->"PATCH";
