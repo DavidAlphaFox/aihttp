@@ -198,7 +198,6 @@ build(qs,Record,Acc)->
                 true ->
                     build(fragment,Record,<<Acc/binary,S/binary>>)
             end
-            
     end;
 build(fragment,Record,Acc)->
     case Record#ai_url.fragment of 
@@ -216,4 +215,4 @@ build(fragment,Record,Acc)->
                     end, undefined,Q),
             <<Acc/binary,S/binary>>
     end.
-                    
+
