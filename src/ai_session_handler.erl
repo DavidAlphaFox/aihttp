@@ -5,7 +5,9 @@
 
 -export([retrive/1,create/2,delete/1,update/2]).
 
--callback recover(cowboy_req:req(),Secret :: term()) -> ok | fail.
+-callback recover(cowboy_req:req(),Secret :: term()) -> 
+							ok|{ok,cowboy_req:req()}
+							|fail|{fail,cowboy_req:req()}.
 -callback create(cowboy_req:req(), Payload :: term(),Secret :: term()) ->
 							{ok,cowboy_req:req(), term()}
 							|{ok,cowboy_req:req()}
@@ -60,8 +62,10 @@ recover(Req,Env)->
 			{stop,cowboy_req:reply(500,#{},<<"need a session handler">>,Req)};
 		true ->
 			case Handler:recover(Req,Secret) of
-				ok -> {ok, Req, Env };
-				fail -> fail(Redirect,Req)
+					ok -> {ok, Req, Env };
+					fail -> fail(Redirect,Req);
+					{ok,Req0} -> {ok,Req0,Env};
+					{fail,Req0} -> fail(Redirect,Req0)
 			end
 	end.
 
