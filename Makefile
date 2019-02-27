@@ -1,6 +1,6 @@
 PROJECT = aihttp
 PROJECT_DESCRIPTION = http lib for products from ailink.io
-PROJECT_VERSION = 0.2.0
+PROJECT_VERSION = 0.2.1
 
 DEPS = cowlib gun cowboy ailib
 dep_cowlib_commit = 2.7.0
