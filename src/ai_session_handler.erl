@@ -3,7 +3,7 @@
 
 -export([execute/2]).
 
--export([retrive/1,create/2,delete/1,update/2]).
+-export([retrieve/1,create/2,delete/1,update/2]).
 
 -callback recover(cowboy_req:req(),Secret :: term()) -> 
 							ok|{ok,cowboy_req:req()}
@@ -16,7 +16,7 @@
 							{ok,cowboy_req:req(), term()}
 							|{ok,cowboy_req:req()}
 							|{error,fail}.
--callback retrive(cowboy_req:req(),Secret ::term())->
+-callback retrieve(cowboy_req:req(),Secret ::term())->
 							{ok,cowboy_req:req(), term()} 
 							|{error,not_found}.
 -callback delete(cowboy_req:req(),Secret :: term()) ->
@@ -90,15 +90,15 @@ create(Req,Payload)->
 				#{handler := Handler,secret := Secret } = Ctx,
 				Handler:create(Req,Payload,Secret)
 	end.
--spec retrive(cowboy_req:req())->
+-spec retrieve(cowboy_req:req())->
 	{ok,cowboy_req:req(),term()}
 	|{error,not_initialized}|{error,not_found}.
-retrive(Req)->
+retrieve(Req)->
 		case context() of
 				undefined ->{error,not_initialized};
 				Ctx ->
 						#{handler := Handler,secret := Secret } = Ctx,
-						Handler:retrive(Req,Secret)	
+						Handler:retrieve(Req,Secret)	
 		end.
 -spec update(cowboy_req:req(),Payload::term())->
 				{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
