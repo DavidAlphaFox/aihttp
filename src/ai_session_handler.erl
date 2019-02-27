@@ -3,29 +3,33 @@
 
 -export([execute/2]).
 
--export([get_session/0,create_session/1,delete_session/0,update_session/1]).
+-export([retrive/1,create/2,delete/1,update/2]).
 
--callback recover_session(cowboy_req:req(), term())
-	-> {ok,term()} | not_found | reject.
--callback create_session(term(),term())
-	-> {ok,term()} | {error,fail}.
--callback delete_session(term(),term())
-	-> ok | {error,fail}.
--callback update_session(term(),term(),term())
-	-> ok | {ok,term()} | {error,fail}.
--callback get_session(term(),term())
-	-> {ok,term()} | not_found.
+-callback recover(cowboy_req:req(),Secret :: term()) -> ok | fail.
+-callback create(cowboy_req:req(), Payload :: term(),Secret :: term()) ->
+							{ok,cowboy_req:req(), term()}
+							|{ok,cowboy_req:req()}
+							|{error,fail}.
+-callback update(cowboy_req:req(), Payload:: term(),Secret::term()) ->
+							{ok,cowboy_req:req(), term()}
+							|{ok,cowboy_req:req()}
+							|{error,fail}.
+-callback retrive(cowboy_req:req(),Secret ::term())->
+							{ok,cowboy_req:req(), term()} 
+							|{error,not_found}.
+-callback delete(cowboy_req:req(),Secret :: term()) ->
+							{ok,cowboy_req:req(), term()}
+							|{ok,cowboy_req:req()}
+							|{error,fail}.
 
 
 
-
--spec execute( cowboy:req(), cowboy_middleware:env() ) -> 
+-spec execute( cowboy:req(), cowboy_middleware:env() ) ->
 	{ ok, cowboy:req(), cowboy_middleware:env() } 	|
 	{ suspend, module(), atom(), [any()] } 			|
 	{ stop, cowboy:req() }.
-execute( Req, Env = #{ ai_session := SSO, handler := Handler,handler_opts := HandlerOpts} ) ->
-	%% {module,Handler} = code:ensure_loaded(Handler),
-	create_context(SSO),
+execute( Req, Env = #{ ai_session := Context, handler := Handler,handler_opts := HandlerOpts} ) ->
+	context(Context),
 	execute( Req, Env,Handler,HandlerOpts );
 
 %%
@@ -35,93 +39,80 @@ execute( Req, Env ) ->
 	{ ok, Req, Env }.
 
 execute( Req, Env,Handler,HandlerOpts ) ->
-	case authorization_required(Handler,Req,HandlerOpts) of
-		false -> 
-			{ok,Req,Env};
-		true ->
-			recover_session(Req,Env)
+	case session_required(Handler,Req,HandlerOpts) of
+		false -> {ok,Req,Env};
+		true -> recover(Req,Env)
 	end.
 
-authorization_required(Handler,Req,State)->
-    case erlang:function_exported( Handler, authorization_required, 2 ) of
-		true -> 
-			Handler:authorization_required(Req,State);
-		false -> 
-			false
+session_required(Handler,Req,State)->
+    case erlang:function_exported( Handler, session_required, 2 ) of
+				true -> Handler:session_required(Req,State);
+				false -> false
 	end.
-recover_session(Req,Env)->
-	Ctx = get_context(),
+
+recover(Req,Env)->
+	Ctx = context(),
 	Handler = maps:get(handler,Ctx,undefined),
 	Secret = maps:get(secret,Ctx,undefined),
 	Redirect = maps:get(redirect,Ctx,undefined),
-	case Handler:recover_session(Req,Secret) of 
-		{ok,Token}->
-			update_context(token,Token),
-			{ ok, Req, Env };
-		Error -> 
-			fail(Redirect,Error,Req)
+	if
+		Handler  == undefined ->
+			{stop,cowboy_req:reply(500,#{},<<"need a session handler">>,Req)};
+		true ->
+			case Handler:recover(Req,Secret) of
+				ok -> {ok, Req, Env };
+				fail -> fail(Redirect,Req)
+			end
 	end.
 
-fail({ redirect, To },_Error,Req)->
+fail({ redirect, To },Req)->
 	{ stop, cowboy_req:reply( 302, #{ <<"Location">> => To }, <<>>, Req ) };
-fail(_,not_found,Req)-> {stop,cowboy_req:reply(401,#{},<<>>,Req)};
-fail(_,invalid_token,Req)->{stop,cowboy_req:reply(401,#{},<<>>,Req)};
-fail(_,expired,Req) -> {stop,cowboy_req:reply(401,#{},<<>>,Req)}.
+fail(_,Req)-> {stop,cowboy_req:reply(401,#{},<<>>,Req)}.
 
-create_context(Ctx)-> erlang:put(?MODULE,Ctx).
 
-get_context()-> erlang:get(?MODULE).
+context()-> erlang:get(?MODULE).
+context(Ctx)-> erlang:put(?MODULE,Ctx).
 
-update_context(token,Token)->
-	case get_context() of 
-		undefined -> erlang:put(?MODULE,#{token => Token});
-		Ctx -> erlang:put(?MODULE, maps:put(token,Token,Ctx))
-	end.
 
-get_session()->
-	case get_context() of 
-		undefined -> undefined;
-		Ctx -> 
-			#{handler := Handler,secret := Secret } = Ctx,
-			Token = maps:get(token,Ctx,undefined),
-			Handler:get_session(Token,Secret)
+%%%% API
+
+-spec create(cowboy_req:req(),Payload::term())->
+	{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
+	|{error,not_initialized}|{error,fail}.
+create(Req,Payload)->
+	case  context() of 
+			undefined -> {error,not_initialized};
+			Ctx -> 
+				#{handler := Handler,secret := Secret } = Ctx,
+				Handler:create(Req,Payload,Secret)
 	end.
-create_session(Payload)->
-	case get_context() of 
-		undefined -> {error,fail};
-		Ctx -> 
-			#{handler := Handler,secret := Secret } = Ctx,
-			case Handler:create_session(Payload,Secret) of 
-				{ok,Token}-> 
-					erlang:put(?MODULE,maps:put(token,Token,Ctx)),
-					{ok,Token};
-				_ ->  {error,fail}
-			end
-	end.
-delete_session()->
-	case get_context() of 
-		undefined -> {error,fail};
-		Ctx ->
-			#{handler := Handler,secret := Secret } = Ctx,
-			Token = maps:get(token,Ctx,undefined),
-			case Handler:delete_session(Token,Secret) of 
-				ok ->
-					erlang:put(?MODULE, maps:remove(token,Ctx)),
-					ok;
-				_ -> {error,fail}
-			end
-	end.
-update_session(Payload)->
-	case get_context() of
-		undefined -> {error,fail};
-		Ctx ->
-			#{handler := Handler,secret := Secret } = Ctx,
-			Token = maps:get(token,Ctx,undefined),
-			case Handler:update_session(Token,Payload,Secret) of 
-				ok -> ok;
-				{ok,Token0} -> 
-              erlang:put(?MODULE, maps:put(token,Token0,Ctx)),
-              {ok,Token0};
-				_ -> {error,fail}
-			end
+-spec retrive(cowboy_req:req())->
+	{ok,cowboy_req:req(),term()}
+	|{error,not_initialized}|{error,not_found}.
+retrive(Req)->
+		case context() of
+				undefined ->{error,not_initialized};
+				Ctx ->
+						#{handler := Handler,secret := Secret } = Ctx,
+						Handler:retrive(Req,Secret)	
+		end.
+-spec update(cowboy_req:req(),Payload::term())->
+				{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
+				|{error,not_initialized}|{error,fail}.
+update(Req,Payload)->
+		case context() of
+				undefined -> {error,not_initialized};
+				Ctx ->
+						#{handler := Handler,secret := Secret } = Ctx,
+						Handler:update(Req,Payload,Secret)
+		end.
+-spec delete(cowboy_req:req())->
+	{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
+	|{error,not_initialized}|{error,fail}.
+delete(Req)->
+	case context() of
+			undefined -> {error,not_initialized};
+			Ctx ->
+				#{handler := Handler,secret := Secret } = Ctx,
+					Handler:delete(Req,Secret)
 	end.
