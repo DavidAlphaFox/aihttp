@@ -5,21 +5,24 @@
 
 -export([retrieve/1,create/2,delete/1,update/2]).
 
--callback recover(cowboy_req:req(),Secret :: term()) -> 
-							ok|{ok,cowboy_req:req()}
-							|fail|{fail,cowboy_req:req()}.
--callback create(cowboy_req:req(), Payload :: term(),Secret :: term()) ->
+-callback recover(cowboy_req:req(),Context :: term()) -> 
+							ok | fail
+							|{ok,cowboy_req:req()}
+							|{fail,cowboy_req:req()}
+							|{redirect,Loc :: binary()}
+							| {redirect,Loc :: binary(), cowboy_req:req()}.
+-callback create(cowboy_req:req(), Payload :: term(),Context :: term()) ->
 							{ok,cowboy_req:req(), term()}
 							|{ok,cowboy_req:req()}
 							|{error,fail}.
--callback update(cowboy_req:req(), Payload:: term(),Secret::term()) ->
+-callback update(cowboy_req:req(), Payload:: term(),Context :: term()) ->
 							{ok,cowboy_req:req(), term()}
 							|{ok,cowboy_req:req()}
 							|{error,fail}.
--callback retrieve(cowboy_req:req(),Secret ::term())->
+-callback retrieve(cowboy_req:req(),Context :: term())->
 							{ok,cowboy_req:req(), term()} 
 							|{error,not_found}.
--callback delete(cowboy_req:req(),Secret :: term()) ->
+-callback delete(cowboy_req:req(),Context :: term()) ->
 							{ok,cowboy_req:req(), term()}
 							|{ok,cowboy_req:req()}
 							|{error,fail}.
@@ -55,17 +58,19 @@ session_required(Handler,Req,State)->
 recover(Req,Env)->
 	Ctx = context(),
 	Handler = maps:get(handler,Ctx,undefined),
-	Secret = maps:get(secret,Ctx,undefined),
+	Context = maps:get(context,Ctx),
 	Redirect = maps:get(redirect,Ctx,undefined),
 	if
 		Handler  == undefined ->
 			{stop,cowboy_req:reply(500,#{},<<"need a session handler">>,Req)};
 		true ->
-			case Handler:recover(Req,Secret) of
+			case Handler:recover(Req,Context) of
 					ok -> {ok, Req, Env };
 					fail -> fail(Redirect,Req);
 					{ok,Req0} -> {ok,Req0,Env};
-					{fail,Req0} -> fail(Redirect,Req0)
+					{fail,Req0} -> fail(Redirect,Req0);
+					{redirect,Loc} -> fail(Loc,Req);
+					{redirect,Loc,Req0} -> fail(Loc,Req0)
 			end
 	end.
 
@@ -87,8 +92,8 @@ create(Req,Payload)->
 	case  context() of 
 			undefined -> {error,not_initialized};
 			Ctx -> 
-				#{handler := Handler,secret := Secret } = Ctx,
-				Handler:create(Req,Payload,Secret)
+				#{handler := Handler,context := Context } = Ctx,
+				Handler:create(Req,Payload,Context)
 	end.
 -spec retrieve(cowboy_req:req())->
 	{ok,cowboy_req:req(),term()}
@@ -97,8 +102,8 @@ retrieve(Req)->
 		case context() of
 				undefined ->{error,not_initialized};
 				Ctx ->
-						#{handler := Handler,secret := Secret } = Ctx,
-						Handler:retrieve(Req,Secret)	
+						#{handler := Handler,context := Context } = Ctx,
+						Handler:retrieve(Req,Context)	
 		end.
 -spec update(cowboy_req:req(),Payload::term())->
 				{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
@@ -107,8 +112,8 @@ update(Req,Payload)->
 		case context() of
 				undefined -> {error,not_initialized};
 				Ctx ->
-						#{handler := Handler,secret := Secret } = Ctx,
-						Handler:update(Req,Payload,Secret)
+						#{handler := Handler, context := Context} = Ctx,
+						Handler:update(Req,Payload,Context)
 		end.
 -spec delete(cowboy_req:req())->
 	{ok,cowboy_req:req(),term()}|{ok,cowboy_req:req()}
@@ -117,6 +122,6 @@ delete(Req)->
 	case context() of
 			undefined -> {error,not_initialized};
 			Ctx ->
-				#{handler := Handler,secret := Secret } = Ctx,
-					Handler:delete(Req,Secret)
+				#{handler := Handler,context := Context} = Ctx,
+					Handler:delete(Req,Context)
 	end.
